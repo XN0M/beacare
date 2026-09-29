@@ -1,5 +1,14 @@
-export type CategoryId = 'hair' | 'skin' | 'nails' | 'tools'
-export type BrandStatus = 'sample' | 'active' | 'paused'
+export type CategoryId = 'skin' | 'hair' | 'body' | 'nails'
+export type BrandStatus = 'active' | 'paused'
+export type AffiliateNetwork = 'goaffpro' | 'refersion' | 'direct'
+export type MarketCode = 'US' | 'GB' | 'ES' | 'INTL'
+export type AffiliatePlacement =
+  | 'hero'
+  | 'category_result'
+  | 'featured_brands'
+  | 'routine_recommendation'
+  | 'curated_essentials'
+  | 'footer'
 export type GuideStatus = 'published' | 'draft'
 
 export interface Brand {
@@ -7,10 +16,15 @@ export interface Brand {
   name: string
   categories: CategoryId[]
   summary: string
-  image: string
+  bestFor: string
+  editorialNote: string
   affiliateUrl: string | null
+  network: AffiliateNetwork
   status: BrandStatus
   trackingId: string | null
+  markets: MarketCode[]
+  tags: string[]
+  featured: boolean
 }
 
 export interface Category {

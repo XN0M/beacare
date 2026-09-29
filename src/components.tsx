@@ -1,7 +1,10 @@
 import { ArrowRight, ChevronDown, Leaf, Menu, X } from 'lucide-react'
 import { useId, useState, type ButtonHTMLAttributes, type ReactNode } from 'react'
-import type { Brand, CategoryId, Guide } from './types'
+import type { AffiliatePlacement, Brand, CategoryId, Guide, MarketCode } from './types'
 import { isValidAffiliate, trackAffiliateClick } from './tracking'
+
+const categoryLabels: Record<CategoryId, string> = { skin: 'Skin', hair: 'Hair', body: 'Body', nails: 'Nails' }
+const marketLabels: Record<MarketCode, string> = { US: 'US', GB: 'UK', ES: 'Spain', INTL: 'International' }
 
 export const Container = ({ children, className = '' }: { children: ReactNode; className?: string }) => (
   <div className={`mx-auto w-full max-w-7xl px-5 sm:px-8 lg:px-10 ${className}`}>{children}</div>
@@ -30,24 +33,30 @@ export const MediaFrame = ({ src, alt, className = '', eager = false }: { src: s
 
 export const CategoryFilter = ({ value, onChange }: { value: 'all' | CategoryId; onChange: (value: 'all' | CategoryId) => void }) => {
   const filters: Array<{ value: 'all' | CategoryId; label: string }> = [
-    { value: 'all', label: 'All brands' }, { value: 'hair', label: 'Hair' }, { value: 'skin', label: 'Skin & Body' }, { value: 'nails', label: 'Nails' }, { value: 'tools', label: 'Tools' },
+    { value: 'all', label: 'All brands' }, { value: 'skin', label: 'Skin' }, { value: 'hair', label: 'Hair' }, { value: 'body', label: 'Body' }, { value: 'nails', label: 'Nails' },
   ]
   return <div className="filter-row" role="group" aria-label="Filter featured brands by category">
     {filters.map((filter) => <button key={filter.value} type="button" aria-pressed={value === filter.value} onClick={() => onChange(filter.value)}>{filter.label}</button>)}
   </div>
 }
 
-export const BrandCard = ({ brand }: { brand: Brand }) => {
+export const BrandCard = ({ brand, contextCategory, placement }: { brand: Brand; contextCategory: CategoryId; placement: AffiliatePlacement }) => {
   const active = isValidAffiliate(brand)
-  const primaryCategory = brand.categories[0]
   return <article className="brand-card">
-    <div className="brand-card-image"><img src={brand.image} alt="" loading="lazy" /></div>
-    <div className="p-6 sm:p-7">
-      <div className="mb-4 flex items-center justify-between gap-3"><span className="sample-badge">Sample brand</span><span className="text-sm text-forest/55">{brand.categories.join(' · ')}</span></div>
+    <div className="brand-card-body">
+      <div className="brand-card-meta">
+        <span>{brand.categories.map((category) => categoryLabels[category]).join(' · ')}</span>
+        <span>{brand.markets.map((market) => marketLabels[market]).join(' · ')}</span>
+      </div>
       <h3 className="font-display text-2xl font-semibold">{brand.name}</h3>
       <p className="mt-3 leading-7 text-forest/70">{brand.summary}</p>
-      {active ? <a className="brand-link" href={brand.affiliateUrl!} rel="sponsored" onClick={() => trackAffiliateClick(brand, primaryCategory, 'featured_brands')}>Visit brand <ArrowRight size={17} strokeWidth={1.5} /></a>
-        : <span className="brand-link is-disabled" aria-disabled="true">Preview only <Leaf size={16} strokeWidth={1.5} /></span>}
+      <dl className="brand-card-copy">
+        <div><dt>Best for</dt><dd>{brand.bestFor}</dd></div>
+        <div><dt>Why it is in the edit</dt><dd>{brand.editorialNote}</dd></div>
+      </dl>
+      <ul className="tag-list" aria-label={`${brand.name} product categories`}>{brand.tags.slice(0, 3).map((tag) => <li key={tag}>{tag}</li>)}</ul>
+      {active ? <a className="brand-link" href={brand.affiliateUrl!} rel="sponsored" onClick={() => trackAffiliateClick(brand, contextCategory, placement)}>Visit brand <ArrowRight size={17} strokeWidth={1.5} /></a>
+        : <span className="brand-link is-disabled" aria-disabled="true">Currently unavailable <Leaf size={16} strokeWidth={1.5} /></span>}
     </div>
   </article>
 }
@@ -73,15 +82,17 @@ export const AccordionItem = ({ question, children }: { question: string; childr
   </div>
 }
 
-export const MobileNav = () => {
+export const MobileNav = ({ onSelectCategory }: { onSelectCategory: (category: CategoryId) => void }) => {
   const [open, setOpen] = useState(false)
-  const links = [['Hair', '#hair'], ['Skin', '#skin'], ['Body', '#skin'], ['Nails', '#nails'], ['Beauty Tools', '#tools']]
+  const links: Array<{ label: string; category: CategoryId }> = [
+    { label: 'Skin', category: 'skin' }, { label: 'Hair', category: 'hair' }, { label: 'Body', category: 'body' }, { label: 'Nails', category: 'nails' },
+  ]
   return <div className="md:hidden">
     <button className="icon-button" type="button" aria-label="Open navigation" aria-expanded={open} onClick={() => setOpen(true)}><Menu /></button>
     <div className="mobile-menu" data-open={open} aria-hidden={!open}>
       <button className="icon-button absolute right-5 top-5" type="button" aria-label="Close navigation" onClick={() => setOpen(false)}><X /></button>
-      <p className="font-display text-2xl">Beauty Index</p>
-      <nav aria-label="Mobile navigation">{links.map(([label, href]) => <a key={label} href={href} onClick={() => setOpen(false)}>{label}</a>)}</nav>
+      <p className="font-display text-2xl">BeaCare</p>
+      <nav aria-label="Mobile navigation">{links.map(({ label, category }) => <a key={category} href="#brands" onClick={() => { onSelectCategory(category); setOpen(false) }}>{label}</a>)}</nav>
       <a className="button button-primary mt-8" href="#brands" onClick={() => setOpen(false)}>Browse brands</a>
     </div>
   </div>

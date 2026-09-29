@@ -1,7 +1,10 @@
-import type { Brand, CategoryId } from './types'
+import type { AffiliatePlacement, Brand, CategoryId } from './types'
 
 declare global {
-  interface Window { dataLayer?: Record<string, unknown>[] }
+  interface Window {
+    dataLayer?: unknown[]
+    gtag?: (...args: unknown[]) => void
+  }
 }
 
 export const isValidAffiliate = (brand: Brand) => {
@@ -9,30 +12,31 @@ export const isValidAffiliate = (brand: Brand) => {
   try { return new URL(brand.affiliateUrl).protocol === 'https:' } catch { return false }
 }
 
-export const trackAffiliateClick = (brand: Brand, category: CategoryId, placement: string) => {
+export const trackAffiliateClick = (brand: Brand, category: CategoryId, placement: AffiliatePlacement) => {
   if (!isValidAffiliate(brand) || !import.meta.env.VITE_GA_ID) return
-  window.dataLayer?.push({ event: 'affiliate_click', brand: brand.name, category, placement, trackingId: brand.trackingId })
+  const destinationDomain = new URL(brand.affiliateUrl!).hostname.replace(/^www\./, '')
+  window.gtag?.('event', 'affiliate_click', {
+    brand: brand.name,
+    category,
+    placement,
+    network: brand.network,
+    tracking_id: brand.trackingId,
+    destination_domain: destinationDomain,
+  })
 }
 
 export const initTracking = () => {
   const gaId = import.meta.env.VITE_GA_ID
-  if (gaId) {
+  if (gaId && !document.querySelector('[data-beacare-ga]')) {
     window.dataLayer = window.dataLayer || []
+    window.gtag = window.gtag || ((...args: unknown[]) => { window.dataLayer?.push(args) })
+    window.gtag('js', new Date())
+    window.gtag('config', gaId)
+
     const script = document.createElement('script')
     script.async = true
     script.src = `https://www.googletagmanager.com/gtag/js?id=${encodeURIComponent(gaId)}`
+    script.dataset.beacareGa = 'true'
     document.head.appendChild(script)
-  }
-  const impactUrl = import.meta.env.VITE_IMPACT_SCRIPT_URL
-  if (impactUrl) {
-    try {
-      const parsed = new URL(impactUrl)
-      if (parsed.protocol === 'https:') {
-        const script = document.createElement('script')
-        script.async = true
-        script.src = parsed.toString()
-        document.head.appendChild(script)
-      }
-    } catch { /* Invalid configuration remains inert. */ }
   }
 }
